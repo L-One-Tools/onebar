@@ -1,0 +1,200 @@
+<Window x:Class="OneBar.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OneBar"
+        Width="260" Height="9"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        SizeToContent="Manual">
+    <Window.Resources>
+        <Style x:Key="BaseBarButton" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#404548"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#2025292D" BlurRadius="9" ShadowDepth="1" Opacity="0.20"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Shell"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="13">
+                                <Grid>
+                                    <Border Margin="3,2,3,15" CornerRadius="11"
+                                            Background="#8AFFFFFF" Opacity="0.28"
+                                            IsHitTestVisible="False"/>
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,0,1"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Shell" Property="Opacity" Value="0.90"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Shell" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.985" ScaleY="0.985" CenterX="18" CenterY="17"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CatalogButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseBarButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFF7F8F8" Offset="0"/>
+                        <GradientStop Color="#FFE5EAEC" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#FFFFFFFF"/>
+        </Style>
+
+        <Style x:Key="WorkflowButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseBarButton}">
+            <Setter Property="Foreground" Value="#FFF6F7F8"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FF5B6066" Offset="0"/>
+                        <GradientStop Color="#FF43484E" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#77FFFFFF"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#4025262A" BlurRadius="8" ShadowDepth="1" Opacity="0.26"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StepLightButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseBarButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFFAFAF9" Offset="0"/>
+                        <GradientStop Color="#FFE9EDED" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#FFFFFFFF"/>
+        </Style>
+
+        <Style x:Key="StepDarkButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseBarButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFD2D8DB" Offset="0"/>
+                        <GradientStop Color="#FFBEC7CC" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#FFF5F7F8"/>
+        </Style>
+
+        <Style x:Key="UtilityButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseBarButton}">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderThickness" Value="0.7"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFF8F9F9" Offset="0"/>
+                        <GradientStop Color="#FFE4E9EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#FFFFFFFF"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#182A2E32" BlurRadius="7" ShadowDepth="1" Opacity="0.13"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root" Background="Transparent">
+        <Border x:Name="CollapsedHandle"
+                Width="260" Height="9"
+                HorizontalAlignment="Center" VerticalAlignment="Top"
+                CornerRadius="0,0,8,8"
+                BorderBrush="#EEFFFFFF" BorderThickness="1"
+                Cursor="Hand"
+                MouseEnter="CollapsedHandle_OnMouseEnter">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#F4FAFAF8" Offset="0"/>
+                    <GradientStop Color="#E0E8ECEF" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect Color="#33282C30" BlurRadius="8" ShadowDepth="0" Opacity="0.18"/>
+            </Border.Effect>
+        </Border>
+
+        <Border x:Name="CollapsedGloss"
+                Width="252" Height="4" Margin="0,1,0,0"
+                HorizontalAlignment="Center" VerticalAlignment="Top"
+                CornerRadius="0,0,8,8"
+                Background="#8AFFFFFF"
+                IsHitTestVisible="False"/>
+
+        <Border x:Name="ExpandedPanel"
+                Height="62"
+                Padding="8,10"
+                HorizontalAlignment="Center" VerticalAlignment="Top"
+                Visibility="Collapsed"
+                CornerRadius="0,0,18,18"
+                BorderBrush="#F8FFFFFF" BorderThickness="1"
+                RenderTransformOrigin="0.5,0"
+                MouseEnter="ExpandedPanel_OnMouseEnter"
+                MouseLeave="ExpandedPanel_OnMouseLeave">
+            <Border.RenderTransform>
+                <ScaleTransform x:Name="PanelScale" ScaleX="1" ScaleY="1"/>
+            </Border.RenderTransform>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#EEF3F3F1" Offset="0"/>
+                    <GradientStop Color="#DDE7EAEC" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect Color="#332C2F33" BlurRadius="16" ShadowDepth="2" Opacity="0.20"/>
+            </Border.Effect>
+            <ScrollViewer x:Name="Scroller"
+                          HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          PreviewMouseWheel="Scroller_OnPreviewMouseWheel">
+                <StackPanel x:Name="Row" Orientation="Horizontal" VerticalAlignment="Center"/>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Window>

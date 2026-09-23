@@ -1,0 +1,25 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+publish/
+
+# IDE and user settings
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local configuration and logs
+appsettings.Local.json
+settings.local.json
+*.log
+
+# Release packages and archives
+*.exe
+*.msi
+*.zip
+*.7z
+*.nupkg
