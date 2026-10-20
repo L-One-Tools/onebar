@@ -14,6 +14,8 @@
 ./BUILD_AND_PACKAGE.cmd
 ```
 
+也可执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build\Build-OneBar.ps1`。脚本只构建，不安装、不启动，也不自动安装依赖；缺少 Inno Setup 时可使用 `-IsccPath` 指定编译器。发布目录须为空，重复打包请使用新的源码检出目录。
+
 脚本会发布 self-contained 的 `OneBar.exe`，然后调用 Inno Setup 生成安装包。产物写入 `artifacts/`，该目录不会进入 Git。
 
 ## 构建后最小检查

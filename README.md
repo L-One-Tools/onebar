@@ -1,63 +1,27 @@
 # OneBar
 
-OneBar 是一个 Windows 桌面顶部工作流启动器。
+Windows 顶部工作流工具，支持本地 .md/.txt 文件、递归子文件夹、紧贴排列的浮动胶囊、五级选中色调与按深度回收。
 
-把常用提示词或说明文件放进 Workflow 文件夹后，鼠标移到屏幕顶部即可展开 OneBar：选择工作流、单击步骤复制完整内容，或拖动步骤导出真实的 Markdown / TXT 文件。
+当前源码版本 1.1.0-local.2，C# / .NET 8 / WPF，MIT 许可见 LICENSE。这是本机验证的更新候选，不表示已发布正式版。
 
-## 当前状态
+## 构建
 
-- 当前工程：OneBar Desktop v1.0.0
-- 技术：C#、.NET 8、WPF
-- 支持：Windows 10 / 11 x64
-- 公开源码仓库候选：尚未包含已编译的 EXE 或安装包
-
-本仓库用于保存和协作源码。它不是已验证的下载发行页；若要发布安装包，应另行提供安装包、版本号、SHA-256 和安装验证记录。
-
-## 功能
-
-- 屏幕顶部隐藏热区与横向展开界面
-- 文件夹作为工作流，`.md` / `.txt` 文件作为步骤
-- 单击步骤复制全文；拖动步骤导出文件
-- 锁定、刷新、自定义工作流目录和设置
-- 系统托盘、任务栏图标、开机启动、桌面和开始菜单快捷方式
-- 单实例运行与旧工作流目录迁移
-
-## 本地构建
-
-需要 Windows 10 / 11 x64、.NET 8 SDK 和 Inno Setup 6。
+Windows x64 安装 .NET 8 SDK 和 Inno Setup 6，然后执行：
 
 ```powershell
-./BUILD_AND_PACKAGE.cmd
+powershell -ExecutionPolicy Bypass -File .\build\Build-OneBar.ps1
 ```
 
-构建会生成：
+脚本输出到 artifacts/publish/win-x64 和 artifacts/installer，只构建，不安装、不启动。也可先执行 `dotnet build .\src\OneBar\OneBar.csproj -c Release` 检查源码。
 
-```text
-artifacts/publish/win-x64/OneBar.exe
-artifacts/installer/OneBar_Setup_v1.0.0.exe
-```
+## 使用和升级
 
-构建脚本在缺少依赖时会提示或可经 `winget` 安装依赖。请先阅读 [docs/BUILD.md](docs/BUILD.md)。
+安装后在设置中选择工作流目录；点击分类逐层展开，点击文件复制内容，拖动文件到支持的接收应用。默认回收等待及动画各 333ms；升级保留原设置，要使用新速度需分别手动设为 333ms。设置保存在当前用户 AppData 中，工作流目录可自行选择。
 
-## 默认使用方式
+安装包自包含运行时；源码仓库不提交 EXE、bin、obj、个人设置、工作流或使用记录。默认目录中只有通用示例。主导航白色/深灰，弹出分支未选白色、选中按类别着色；五级为色阶，不限制递归深度。
 
-默认工作流位于安装目录的 `Workflows` 文件夹。你可以在设置中改成自己的目录。
+Windows x64 为构建目标；多屏、不同 DPI 及全部 Windows 版本尚未完整验证。接收应用决定拖放能力。请勿仅因本机通过就宣称全面兼容。
 
-```text
-Workflow 文件夹
-└─ 一个步骤.md
-```
+## 仓库资料
 
-## 已知边界
-
-- 本仓库没有附带当前 v1.0.0 的最终 EXE 或 Setup EXE；它们曾在原开发电脑构建和安装，但未包含在本交接包中。
-- 当前交接资料记录了成功安装这一结果，不等于完整的逐项运行回归报告。
-- 当前源码使用 MIT 许可证；它允许使用、修改和再发布，但须保留版权与许可证文本。
-
-## 参与和安全
-
-请先阅读 [贡献说明](CONTRIBUTING.md) 与 [安全说明](SECURITY.md)。
-
-## 版权与许可证
-
-版权所有 © 2026 L-One，依据 [MIT License](LICENSE) 发布。
+参阅 [更新说明](docs/CHANGELOG.md)、[安装与升级](docs/INSTALL.md)、[验证边界](docs/VERIFICATION.md)、[贡献说明](CONTRIBUTING.md) 和 [安全说明](SECURITY.md)。

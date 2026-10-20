@@ -1,5 +1,5 @@
 ﻿#define MyAppName "OneBar"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0-local.2"
 #define MyAppPublisher "L-One"
 #define MyAppExeName "OneBar.exe"
 
@@ -7,13 +7,14 @@
 AppId={{6E8412B5-91E9-4F52-A4A8-12D08BC0B30E}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+VersionInfoVersion=1.1.0.2
 AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\Programs\OneBar
 DefaultGroupName=OneBar
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\artifacts\installer
 OutputBaseFilename=OneBar_Setup_v{#MyAppVersion}
 SetupIconFile=..\src\OneBar\Assets\OneBar.ico
@@ -46,7 +47,7 @@ Name: "{group}\OneBar 设置"; Filename: "{app}\{#MyAppExeName}"; Parameters: "-
 Name: "{group}\卸载 OneBar"; Filename: "{uninstallexe}"; Tasks: startmenuicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--installer-config --autostart={code:TaskBool|autostart} --desktop={code:TaskBool|desktopicon} --startmenu={code:TaskBool|startmenuicon} --taskbar={code:TaskBool|showtaskbar} --tray={code:TaskBool|showtray} --workflowRoot=""{app}\Workflows"""; Flags: runhidden waituntilterminated
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--installer-config --autostart={code:TaskBool|autostart} --desktop={code:TaskBool|desktopicon} --startmenu={code:TaskBool|startmenuicon} --taskbar={code:TaskBool|showtaskbar} --tray={code:TaskBool|showtray} --workflowRoot=""{app}\Workflows"""; Flags: runhidden waituntilterminated; Check: IsFirstInstall
 Filename: "{app}\{#MyAppExeName}"; Description: "启动 OneBar"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
@@ -57,6 +58,11 @@ Type: files; Name: "{userdesktop}\OneBar.lnk"
 Type: filesandordirs; Name: "{userprograms}\OneBar"
 
 [Code]
+function IsFirstInstall(): Boolean;
+begin
+  Result := not FileExists(ExpandConstant('{userappdata}\OneBar\settings.json'));
+end;
+
 function TaskBool(Param: string): string;
 begin
   if WizardIsTaskSelected(Param) then

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -37,7 +38,12 @@ public partial class MainWindow : Window, IDisposable
     private bool _isPinned;
     private bool _isDragging;
     private bool _isCollapsing;
+    private int _collapseLevels;
     private bool _allowExit;
+    private bool _settingsOpen;
+    private readonly List<WorkflowDefinition> _path = new();
+    private readonly Dictionary<string, Button> _categories = new();
+    private BranchWindow? _branch;
     private WinForms.NotifyIcon? _trayIcon;
     private System.Drawing.Icon? _trayDrawingIcon;
 
@@ -97,24 +103,23 @@ public partial class MainWindow : Window, IDisposable
 
     public void ShowSettings()
     {
-        _collapseDelayTimer.Stop();
-        var window = new SettingsWindow(_settingsService, _shell, _settings)
+        _collapseDelayTimer.Stop(); _collapseAnimTimer.Stop();
+        _settingsOpen = true; _branch?.Hide();
+        try
         {
-            Owner = this
-        };
-
-        if (window.ShowDialog() == true && window.UpdatedSettings is not null)
-        {
-            _settings = window.UpdatedSettings;
-            ApplyRuntimeSettings();
-            ReloadWorkflows();
-            if (_activeWorkflow is null) BuildCatalogView();
-            else BuildWorkflowView();
+            var window = new SettingsWindow(_settingsService, _shell, _settings) { Owner = this };
+            if (window.ShowDialog() == true && window.UpdatedSettings is not null)
+            {
+                _settings = window.UpdatedSettings;
+                ApplyRuntimeSettings(); ReloadWorkflows(); BuildCatalogView();
+            }
         }
+        finally { _settingsOpen = false; if (_path.Count > 0) RenderBranches(); }
     }
 
     public void Dispose()
     {
+        _branch?.Close(); _branch = null;
         _collapseDelayTimer.Stop();
         _collapseAnimTimer.Stop();
         if (_trayIcon is not null)
@@ -176,37 +181,25 @@ public partial class MainWindow : Window, IDisposable
 
     private void BuildCatalogView()
     {
-        _activeWorkflow = null;
-        Row.Children.Clear();
-
+        _activeWorkflow = null; _path.Clear(); _branch?.Hide(); _categories.Clear(); Row.Children.Clear();
         if (_workflows.Count == 0)
-        {
-            Row.Children.Add(new TextBlock
-            {
-                Text = "Workflows 为空   点 + 添加文件夹与 Markdown",
-                Foreground = new SolidColorBrush(Color.FromRgb(96, 102, 106)),
-                FontSize = 12,
-                Margin = new Thickness(12, 0, 12, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            });
-        }
+            Row.Children.Add(new TextBlock { Text = "Workflows 为空，点 + 打开目录添加文件夹", Foreground = Brushes.DimGray, Margin = new Thickness(12, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center });
         else
         {
             var width = GetUniformWidth(_workflows.Select(w => w.Name), 88, 180, 30);
             foreach (var workflow in _workflows)
             {
                 var button = CreateTextButton(workflow.Name, width, "CatalogButtonStyle", workflow.Path);
+                AutomationProperties.SetName(button, workflow.Name);
                 button.Click += (_, _) =>
                 {
-                    _activeWorkflow = workflow;
-                    BuildWorkflowView();
+                    if (_path.FirstOrDefault()?.Path == workflow.Path) { _path.Clear(); _branch?.Hide(); UpdateSelection(); return; }
+                    _path.Clear(); _path.Add(workflow); RenderBranches();
                 };
-                Row.Children.Add(button);
+                _categories[workflow.Path] = button; Row.Children.Add(button);
             }
         }
-
-        AddUtilityButtons();
-        FitExpandedWindow();
+        AddUtilityButtons(); FitExpandedWindow();
     }
 
     private void BuildWorkflowView()
@@ -278,6 +271,7 @@ public partial class MainWindow : Window, IDisposable
                 _isPinned = !_isPinned;
                 _collapseDelayTimer.Stop();
                 UpdatePinIcon();
+                if (!_isPinned) ScheduleCollapse();
             });
         Row.Children.Add(_pinButton);
 
@@ -326,11 +320,12 @@ public partial class MainWindow : Window, IDisposable
             Style = (Style)FindResource("UtilityButtonStyle"),
             ToolTip = tooltip
         };
+        AutomationProperties.SetName(button, tooltip);
         button.Click += (_, _) => action();
         return button;
     }
 
-    private void AttachStepBehavior(Button button, WorkflowStep step)
+    private void AttachStepBehavior(Button button, WorkflowStep step, Action? onCopied = null)
     {
         button.PreviewMouseLeftButtonDown += (_, _) =>
         {
@@ -359,12 +354,14 @@ public partial class MainWindow : Window, IDisposable
             {
                 var data = new DataObject();
                 data.SetData(DataFormats.FileDrop, new[] { step.Path });
-                DragDrop.DoDragDrop(button, data, DragDropEffects.Copy);
+                _branch?.Hide();
+                DragDrop.DoDragDrop(this, data, DragDropEffects.Copy);
             }
             finally
             {
                 _isDragging = false;
                 _mouseDownButton = null;
+                if (_isPinned && _path.Count > 0) RenderBranches();
                 if (!_isPinned) ScheduleCollapse();
             }
         };
@@ -383,6 +380,7 @@ public partial class MainWindow : Window, IDisposable
             {
                 if (!File.Exists(step.Path)) return;
                 Clipboard.SetText(File.ReadAllText(step.Path));
+                onCopied?.Invoke();
                 ShowCopyFeedback(button, step.Name);
             }
             catch { }
@@ -430,8 +428,9 @@ public partial class MainWindow : Window, IDisposable
             ExpandedPanel.MaxWidth = maxWidth;
             ExpandedPanel.Measure(new Size(double.PositiveInfinity, ExpandedHeight));
             Width = Math.Min(maxWidth, Math.Max(CollapsedWidth, ExpandedPanel.DesiredSize.Width));
-            Height = ExpandedHeight;
+            Height = ExpandedPanel.Visibility == Visibility.Visible ? ExpandedHeight : CollapsedHeight;
             CenterWindow();
+            if (_path.Count > 0 && ExpandedPanel.Visibility == Visibility.Visible) RenderBranches();
         }, DispatcherPriority.Loaded);
     }
 
@@ -453,12 +452,13 @@ public partial class MainWindow : Window, IDisposable
         ExpandedPanel.Visibility = Visibility.Visible;
         Height = ExpandedHeight;
 
-        if (_activeWorkflow is null) BuildCatalogView();
-        else BuildWorkflowView();
+        if (_path.Count > 0) FitExpandedWindow();
+        else BuildCatalogView();
     }
 
     private void CollapseInstant()
     {
+        _branch?.Hide();
         _collapseDelayTimer.Stop();
         _collapseAnimTimer.Stop();
         _isCollapsing = false;
@@ -472,17 +472,18 @@ public partial class MainWindow : Window, IDisposable
         CenterWindow();
     }
 
-    private void ScheduleCollapse()
+    internal void ScheduleCollapse()
     {
-        if (_isPinned || _isDragging) return;
+        if (_isPinned || _isDragging || _settingsOpen) return;
         _collapseDelayTimer.Stop();
         _collapseDelayTimer.Interval = TimeSpan.FromMilliseconds(_settings.CollapseDelayMs);
         _collapseDelayTimer.Start();
     }
 
-    private void StartCollapseAnimation()
+    private void StartCollapseAnimation(bool force = false)
     {
-        if (_isPinned || _isDragging || _isCollapsing || ExpandedPanel.Visibility != Visibility.Visible) return;
+        if (_isPinned || _isDragging || _settingsOpen || _isCollapsing || (!force && (IsMouseOver || _branch?.IsMouseOver == true)) || ExpandedPanel.Visibility != Visibility.Visible) return;
+        _collapseLevels = _branch?.IsVisible == true ? _branch.LevelCount : 0;
         _isCollapsing = true;
         _collapseStopwatch.Restart();
         _collapseAnimTimer.Start();
@@ -490,36 +491,21 @@ public partial class MainWindow : Window, IDisposable
 
     private void CollapseAnimTimerOnTick(object? sender, EventArgs e)
     {
+        if (_isPinned || _isDragging || _settingsOpen) { ExpandBar(); return; }
         var total = Math.Max(200, _settings.CollapseAnimMs);
         var elapsed = _collapseStopwatch.Elapsed.TotalMilliseconds;
-        double scale;
-        double opacity;
-
-        var firstPhase = total * 0.60;
-        var secondPhase = total - firstPhase;
-
-        if (elapsed <= firstPhase)
+        if (elapsed >= total)
         {
-            var p = elapsed / firstPhase;
-            var ease = 1 - Math.Pow(1 - p, 2);
-            scale = 1 - (0.10 * ease);
-            opacity = 1 - (0.06 * ease);
-        }
-        else if (elapsed <= total)
-        {
-            var p = (elapsed - firstPhase) / Math.Max(1, secondPhase);
-            var ease = Math.Pow(p, 3);
-            scale = 0.90 * (1 - ease);
-            opacity = 0.94 * (1 - ease);
-        }
-        else
-        {
+            _branch?.ApplyRetraction(_collapseLevels);
             CollapseInstant();
             return;
         }
-
-        PanelScale.ScaleY = Math.Max(0, scale);
-        ExpandedPanel.Opacity = Math.Max(0, opacity);
+        var stages = elapsed / total * (_collapseLevels + 1);
+        if (_collapseLevels > 0) _branch?.ApplyRetraction(stages);
+        var navigationProgress = Math.Clamp(stages - _collapseLevels, 0, 1);
+        var scale = Math.Pow(1 - navigationProgress, 3);
+        PanelScale.ScaleY = scale;
+        ExpandedPanel.Opacity = scale;
         Height = CollapsedHeight + ((ExpandedHeight - CollapsedHeight) * scale);
     }
 
@@ -532,7 +518,7 @@ public partial class MainWindow : Window, IDisposable
             _isPinned = false;
             UpdatePinIcon();
             _collapseDelayTimer.Stop();
-            StartCollapseAnimation();
+            CollapseInstant();
         }
     }
 
@@ -551,7 +537,7 @@ public partial class MainWindow : Window, IDisposable
             _isPinned = false;
             UpdatePinIcon();
             _collapseDelayTimer.Stop();
-            StartCollapseAnimation();
+            CollapseInstant();
             e.Handled = true;
             return;
         }
@@ -586,4 +572,46 @@ public partial class MainWindow : Window, IDisposable
         Scroller.ScrollToHorizontalOffset(Scroller.HorizontalOffset - e.Delta);
         e.Handled = true;
     }
+
+    private void UpdateSelection()
+    {
+        foreach (var (path, button) in _categories)
+            button.Style = (Style)FindResource(_path.FirstOrDefault()?.Path == path ? "WorkflowButtonStyle" : "CatalogButtonStyle");
+    }
+    private void RenderBranches()
+    {
+        if (_path.Count == 0 || !_categories.TryGetValue(_path[0].Path, out var anchor)) return;
+        UpdateSelection(); UpdateLayout(); _branch ??= new BranchWindow(this);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var point = anchor.PointToScreen(new Point(anchor.ActualWidth / 2, anchor.ActualHeight));
+        _branch.Render(_path, point.X / dpi.DpiScaleX, Top + ExpandedHeight);
+        if (!_branch.IsVisible) _branch.Show();
+    }
+    internal Button Capsule(string label, double width, string style, string tip)
+    {
+        var button = CreateTextButton(label, width, style, tip);
+        if (button.Content is TextBlock text) text.MaxWidth = width - 24;
+        button.Margin = new Thickness(0); AutomationProperties.SetName(button, label);
+        button.MouseEnter += (_, _) => CancelCollapse();
+        return button;
+    }
+    internal void SelectFolder(int level, WorkflowDefinition node)
+    {
+        CancelCollapse();
+        if (_path.Count > level + 1 && _path[level + 1].Path == node.Path)
+            _path.RemoveRange(level + 1, _path.Count - level - 1);
+        else
+        {
+            if (_path.Count > level + 1) _path.RemoveRange(level + 1, _path.Count - level - 1);
+            _path.Add(node);
+        }
+        RenderBranches();
+    }
+    internal void AttachFile(Button button, WorkflowStep step, Action? onCopied = null) => AttachStepBehavior(button, step, onCopied);
+    internal void CancelCollapse()
+    {
+        _collapseDelayTimer.Stop();
+        if (_isCollapsing) ExpandBar();
+    }
+    internal static SolidColorBrush Brush(string hex) => new((Color)ColorConverter.ConvertFromString(hex));
 }
